@@ -2,23 +2,12 @@
 
 require('connect.php');
 
-if (isset($_GET['id']) && !empty($_GET['id'])) {
-    $game_id = $_GET['id'];
+$query = "SELECT * FROM games";
+$statement = $db->prepare($query);
+$statement->execute();
 
-    $query = "SELECT * FROM games WHERE id = :id";
-    $statement = $db->prepare($query);
-    $statement->bindValue(':id', $game_id, PDO::PARAM_INT);
-    $statement->execute();
+$games = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-    $row = $statement->fetch(PDO::FETCH_ASSOC);
-
-    if (!$row) {
-        echo "Post not found!";
-        exit;
-    }
-
-    $title = $row['title'];
-}
 ?>
 
 <!DOCTYPE html>
@@ -34,18 +23,44 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
     <div id="wrapper">
         <div id="header">
             <h1>
-                <a href="index.php">SuperCoolTwitchName's Top Games - <?= htmlspecialchars($row['title']) ?></a>
+                <a href="index.php">SuperCoolTwitchName's Top Games</a>
             </h1>
         </div>
 
         <div id="menu">    
             <a href="index.php">Home</a>
             <a href="create.php">New Game</a>
+            
+            <h2>Available Games</h2>
+            <ul>
+                <?php foreach ($games as $game): ?>
+                    <li><a href="fullgame.php?id=<?= $game['id'] ?>"><?= htmlspecialchars($game['title']) ?></a></li>
+                <?php endforeach; ?>
+            </ul>
         </div>
 
         <div class="game-details">
-            <h2><?= htmlspecialchars($row['title']) ?></h2> 
+            <?php
+            if (isset($_GET['id']) && !empty($_GET['id'])) {
+                $game_id = $_GET['id'];
+
+                $query = "SELECT * FROM games WHERE id = :id";
+                $statement = $db->prepare($query);
+                $statement->bindValue(':id', $game_id, PDO::PARAM_INT);
+                $statement->execute();
+
+                $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+                if (!$row) {
+                    echo "Post not found!";
+                    exit;
+                }
+
+                $title = $row['title'];
+            }
+            ?>
             
+            <h2><?= htmlspecialchars($row['title']) ?></h2> 
             <div class="description">
                 <strong>Description:</strong><?= nl2br(htmlspecialchars($row['description'])) ?>
             </div>
@@ -56,7 +71,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
             <br>
             <div class="release">
                 <strong>Release Date: </strong><?= htmlspecialchars($row['release_date']) ?>
-
+            </div>
 
             <div id="edit">
                 <p>Updated On: 

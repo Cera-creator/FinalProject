@@ -5,6 +5,7 @@ require('connect.php');
 $query = "SELECT * FROM games ORDER BY id DESC";
 $statement = $db->prepare($query);
 $statement->execute();
+
 ?>
 
 <!DOCTYPE html>
@@ -23,20 +24,23 @@ $statement->execute();
                 <a href="index.php">SuperCoolTwitchName's Top Games</a>
             </h1>
         </div>
-            <div id="menu">    
+
+        <div id="menu">
+            <ul>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="create.php">Create</a></li>
-             </div>
+            </ul>
+        </div>
+
+        <h2>Available Games</h2>
         <ul>
             <?php while ($row = $statement->fetch(PDO::FETCH_ASSOC)): ?>
                 <li>
-                    <h2>
-                        <a href="fullgame.php?id=<?= $row['id'] ?>"><?= $row['title'] ?></a>
-                    </h2>
-                    <br>
-                    <div id="edit">
-                    </div>
-                    <br>
+                    <h3>
+                        <a href="fullgame.php?id=<?= $row['id'] ?>"><?= htmlspecialchars($row['title']) ?></a>
+                    </h3>
+                    <p><strong>Genre: </strong><?= htmlspecialchars($row['genre']) ?></p>
+                    <p><strong>Release Date: </strong><?= htmlspecialchars($row['release_date']) ?></p>
                 </li>
             <?php endwhile; ?>
         </ul>
