@@ -68,18 +68,13 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="blog.css">
+    <link rel="stylesheet" href="styles.css">
     <title>Edit Game</title>
 </head>
 <body>
     <div id="wrapper">
-        <div id="header">
-            <h1>
-                <a href="index.php">Edit Game</a>
-            </h1>
-        </div>
-        <div id="menu">
-            <a href="index.php">Home</a>
+        <div id="menu">    
+            <h1><a href="index.php">Return Home</a></h1>
         </div>
         <?php if ($id): ?>
             <form action="edit.php" method="post">
@@ -103,6 +98,9 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
                 <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />
             </form>
         <?php endif ?>
+        <?php
+            $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
+        <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
     </div>
 </body>
 </html>

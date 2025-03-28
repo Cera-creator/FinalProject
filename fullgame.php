@@ -31,14 +31,7 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
             <a href="index.php">Home</a>
             <a href="create.php">New Game</a>
             
-            <h2>Available Games</h2>
-            <ul>
-                <?php foreach ($games as $game): ?>
-                    <li><a href="fullgame.php?id=<?= $game['id'] ?>"><?= htmlspecialchars($game['title']) ?></a></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-
+    
         <div class="game-details">
             <?php
             if (isset($_GET['id']) && !empty($_GET['id'])) {
@@ -81,6 +74,9 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
                     ?>
                 </p>
                 <a href="edit.php?id=<?= $row['id'] ?>">Edit</a>
+                <?php
+                    $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
+                <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
             </div>
         </div>
     </div>
