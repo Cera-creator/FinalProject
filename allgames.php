@@ -11,9 +11,6 @@ if (isset($_GET['sort_by'])) {
         case 'title':
             $orderBy = 'title ASC';
             break;
-        case 'genre':
-            $orderBy = 'genre ASC';
-            break;
         case 'release_date':
             $orderBy = 'release_date ASC';
             break;
@@ -52,7 +49,7 @@ $statement->execute();
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="cool.css">
     <title>Top Games</title>
 </head>
 <body>
@@ -69,14 +66,15 @@ $statement->execute();
             <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
                 <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
             <?php endwhile; ?>
-        </ul>
+            <br>
+                <li><a href="create.php">Add A Game</a></li>
+            </ul>
 
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
             <form method="GET" action="allgames.php">
                 <label for="sort_by">Sort by: </label>
                 <select name="sort_by" id="sort_by" onchange="this.form.submit()">
                     <option value="title" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'title') ? 'selected' : ''; ?>>Title</option>
-                    <option value="genre" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'genre') ? 'selected' : ''; ?>>Genre</option>
                     <option value="release_date" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'release_date') ? 'selected' : ''; ?>>Release Date</option>
                     <option value="updated_at" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'updated_at') ? 'selected' : ''; ?>>Recently Updated</option>
                 </select>
@@ -84,9 +82,6 @@ $statement->execute();
         <?php endif; ?>
 
         <div id="menu">
-            <ul>
-                <li><a href="create.php">Add A Game</a></li>
-            </ul>
 
             <h2>Available Games</h2>
             <ul>
