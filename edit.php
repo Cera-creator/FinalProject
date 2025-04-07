@@ -2,6 +2,20 @@
 require('connect.php');
 require('authenticate.php');
 
+function file_is_an_image($temporary_path, $new_path) {
+    $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
+    $allowed_file_extensions = ['gif', 'jpg', 'jpeg', 'png'];
+
+    $actual_file_extension = strtolower(pathinfo($new_path, PATHINFO_EXTENSION)); 
+    $actual_mime_type = mime_content_type($temporary_path);
+
+    $file_extension_is_valid = in_array($actual_file_extension, $allowed_file_extensions);
+    
+    $mime_type_is_valid = in_array($actual_mime_type, $allowed_mime_types);
+
+    return $file_extension_is_valid && $mime_type_is_valid;
+}
+
 $query_genre = "SELECT DISTINCT genre FROM games";  
 $statement_genre = $db->prepare($query_genre);
 $statement_genre->execute();
@@ -21,7 +35,58 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
     $timezone = new DateTimeZone('America/Winnipeg');
     $datetime = new DateTime('now', $timezone);
     $updated_at = $datetime->format('Y-m-d H:i:s');
+    
+    $image_path = null;
 
+    if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
+        $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+        $statement_image = $db->prepare($query_image);
+        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+        $statement_image->execute();
+        $image = $statement_image->fetch(PDO::FETCH_ASSOC);
+
+        if ($image && file_exists($image['image_path'])) {
+            unlink($image['image_path']);  
+        }
+
+        $query_delete_image = "DELETE FROM images WHERE game_id = :game_id";
+        $statement_delete_image = $db->prepare($query_delete_image);
+        $statement_delete_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+        $statement_delete_image->execute();
+    }
+
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+        $image_filename = $_FILES['image']['name'];
+        $temporary_image_path = $_FILES['image']['tmp_name'];
+        $new_image_path = 'uploads/' . basename($image_filename);
+
+        if (!file_is_an_image($temporary_image_path, $new_image_path)) {
+            header("Location: index.php?id={$id}");
+            exit;
+        }
+
+        move_uploaded_file($temporary_image_path, $new_image_path);
+        $image_path = $new_image_path;
+
+        $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+        $statement_image = $db->prepare($query_image);
+        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+        $statement_image->execute();
+        $image = $statement_image->fetch(PDO::FETCH_ASSOC);
+        
+        if ($image && file_exists($image['image_path'])) {
+            unlink($image['image_path']); 
+        }
+    }
+
+    if (!$image_path) {
+        $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+        $statement_image = $db->prepare($query_image);
+        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+        $statement_image->execute();
+        $image = $statement_image->fetch(PDO::FETCH_ASSOC);
+        $image_path = $image ? $image['image_path'] : null;
+    }
 
     $query = "UPDATE games SET title = :title, description = :description, genre = :genre, updated_at = :updated_at WHERE id = :id";
     $statement = $db->prepare($query);
@@ -32,6 +97,15 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
     $statement->bindValue(':id', $id, PDO::PARAM_INT);
 
     if ($statement->execute()) {
+        if ($image_path) {
+            $query_image = "INSERT INTO images (image_path, game_id) VALUES (:image_path, :game_id)
+                            ON DUPLICATE KEY UPDATE image_path = :image_path";
+            $statement_image = $db->prepare($query_image);
+            $statement_image->bindValue(':image_path', $image_path);
+            $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+            $statement_image->execute();
+        }
+
         header("Location: index.php?id={$id}");
         exit;
     } else {
@@ -46,6 +120,12 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
 
     $statement->execute();
     $row = $statement->fetch();
+
+    $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+    $statement_image = $db->prepare($query_image);
+    $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+    $statement_image->execute();
+    $image = $statement_image->fetch(PDO::FETCH_ASSOC);
 } elseif ($_POST && isset($_POST['delete'])) {
     $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
 
@@ -77,7 +157,7 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
             <h1><a href="index.php">Return Home</a></h1>
         </div>
         <?php if ($id): ?>
-            <form action="edit.php" method="post">
+            <form action="edit.php" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="id" value="<?= $row['id'] ?>">
 
                 <label for="title">Title</label>
@@ -93,6 +173,21 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
                         </option>
                     <?php endforeach; ?>
                 </select>
+
+                <label for="image">New Image (optional)</label>
+                <input type="file" id="image" name="image" accept="image/*" />
+
+<?php if ($image): ?>
+    <div class="current-image">
+        <p>Current Image:</p>
+        <img src="<?= 'uploads/' . basename($image['image_path']) ?>" alt="Current Image" style="max-width: 200px;">
+    </div>
+
+    <label for="delete_image">Delete Image</label>
+    <input type="checkbox" id="delete_image" name="delete_image" value="1" />
+<?php else: ?>
+    <p>No image available.</p>
+<?php endif; ?>
 
                 <input type="submit" name="update" value="Update" />
                 <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />

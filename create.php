@@ -47,6 +47,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $statement->execute();
 
+        $game_id = $db->lastInsertId();
+
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            $image_filename = $_FILES['image']['name'];
+            $temporary_image_path = $_FILES['image']['tmp_name'];
+
+            function file_upload_path($original_filename, $upload_subfolder_name = 'uploads') {
+                $current_folder = dirname(__FILE__);
+                $path_segments = [$current_folder, $upload_subfolder_name, basename($original_filename)];
+                return join(DIRECTORY_SEPARATOR, $path_segments);
+            }
+
+            $new_image_path = file_upload_path($image_filename);
+
+            $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
+            $actual_mime_type = mime_content_type($temporary_image_path);
+            $file_extension = pathinfo($new_image_path, PATHINFO_EXTENSION);
+
+            if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
+                move_uploaded_file($temporary_image_path, $new_image_path);
+
+                $query_image = "INSERT INTO images (image_path, game_id, created_at) 
+                                VALUES (:image_path, :game_id, NOW())";
+                $statement_image = $db->prepare($query_image);
+                $statement_image->bindValue(':image_path', $new_image_path);
+                $statement_image->bindValue(':game_id', $game_id);
+                $statement_image->execute();
+            }
+        }
+
         header('Location: index.php');
         exit; 
     }
@@ -67,28 +97,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="menu">    
             <h1><a href="index.php">Return Home</a></h1>
         </div>
-        <form method="post" action="create.php">
+        <form method="post" action="create.php" enctype="multipart/form-data">
             <label for="title">Title</label>
-            <input id="title" name="title" type="text" />
+            <input id="title" name="title" type="text" required />
 
             <label for="description">Description</label>
-            <textarea id="description" name="description"></textarea>
+            <textarea id="description" name="description" required></textarea>
 
             <label for="genre">Genre</label>
-            <select id="genre" name="genre">
+            <select id="genre" name="genre" required>
                 <?php foreach ($genres as $genre_option): ?>
                     <option value="<?= htmlspecialchars($genre_option['genre']) ?>"><?= htmlspecialchars($genre_option['genre']) ?></option>
                 <?php endforeach; ?>
             </select>
 
             <label for="release_date">Release Date</label>
-            <input type="date" name="release_date" />
+            <input type="date" name="release_date" required />
+
+            <label for="image">Image (optional)</label>
+            <input type="file" id="image" name="image" accept="image/*" />
+            
 
             <input type="submit" value="Submit">
         </form>
         <?php
-                $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
-            <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
+            $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
+        <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
     </div>
 </body>
 </html>
+
