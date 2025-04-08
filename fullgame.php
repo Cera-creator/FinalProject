@@ -5,7 +5,6 @@ $query = "SELECT * FROM games";
 $statement = $db->prepare($query);
 $statement->execute();
 $games = $statement->fetchAll(PDO::FETCH_ASSOC);
-
 ?>
 
 <!DOCTYPE html>
@@ -46,7 +45,7 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
                     exit;
                 }
 
-                $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+                $query_image = "SELECT * FROM images WHERE game_id = :game_id ORDER BY created_at DESC LIMIT 1";
                 $statement_image = $db->prepare($query_image);
                 $statement_image->bindValue(':game_id', $game_id, PDO::PARAM_INT);
                 $statement_image->execute();
@@ -74,7 +73,11 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
 
             <?php if ($image): ?>
                 <div class="current-image">
-                    <img src="<?= 'uploads/' . basename($image['image_path']) ?>" alt="Current Image" style="max-width: 200px;">
+                    <?php
+                        $medium_image_path = 'uploads/' . pathinfo($image['image_path'], PATHINFO_FILENAME) . '_medium.' . pathinfo($image['image_path'], PATHINFO_EXTENSION);
+                    ?>
+        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
+    </div>
                 </div>
             <?php else: ?>
                 <p>No image available.</p>

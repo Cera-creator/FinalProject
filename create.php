@@ -1,7 +1,8 @@
 <?php
-
 require('connect.php');
 require('authenticate.php');
+require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
+require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
 $query_genre = "SELECT DISTINCT genre FROM games";  
 $statement_genre = $db->prepare($query_genre);
@@ -59,21 +60,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 return join(DIRECTORY_SEPARATOR, $path_segments);
             }
 
-            $new_image_path = file_upload_path($image_filename);
-
             $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
             $actual_mime_type = mime_content_type($temporary_image_path);
-            $file_extension = pathinfo($new_image_path, PATHINFO_EXTENSION);
+            $file_extension = pathinfo($image_filename, PATHINFO_EXTENSION);
 
             if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
-                move_uploaded_file($temporary_image_path, $new_image_path);
+                try {
+                    $image = new \Gumlet\ImageResize($temporary_image_path);
+                    $image->resizeToWidth(400);
 
-                $query_image = "INSERT INTO images (image_path, game_id, created_at) 
-                                VALUES (:image_path, :game_id, NOW())";
-                $statement_image = $db->prepare($query_image);
-                $statement_image->bindValue(':image_path', $new_image_path);
-                $statement_image->bindValue(':game_id', $game_id);
-                $statement_image->execute();
+                    $image_medium_filename = pathinfo($image_filename, PATHINFO_FILENAME) . '_medium.' . $file_extension;
+                    $image_medium_path = file_upload_path($image_medium_filename);
+
+                    $image->save($image_medium_path);
+
+                    $medium_image_path = 'uploads/' . $image_medium_filename;
+
+                    $query_image_medium = "INSERT INTO images (image_path, game_id, created_at) 
+                                           VALUES (:image_path, :game_id, NOW())";
+                    $statement_image_medium = $db->prepare($query_image_medium);
+                    $statement_image_medium->bindValue(':image_path', $medium_image_path);
+                    $statement_image_medium->bindValue(':game_id', $game_id);
+                    $statement_image_medium->execute();
+                } catch (Exception $e) {
+                    echo "Error resizing image: " . $e->getMessage();
+                }
             }
         }
 
@@ -82,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -116,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <label for="image">Image (optional)</label>
             <input type="file" id="image" name="image" accept="image/*" />
-            
 
             <input type="submit" value="Submit">
         </form>
@@ -126,4 +137,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </body>
 </html>
-
