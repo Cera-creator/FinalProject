@@ -4,6 +4,16 @@ require('authenticate.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
+use \Gumlet\ImageResize;
+
+$error_message = '';
+
+function file_upload_path($original_filename, $upload_subfolder_name = 'uploads') {
+    $current_folder = dirname(__FILE__);
+    $path_segments = [$current_folder, $upload_subfolder_name, basename($original_filename)];
+    return join(DIRECTORY_SEPARATOR, $path_segments);
+}
+
 $query_genre = "SELECT DISTINCT genre FROM games";  
 $statement_genre = $db->prepare($query_genre);
 $statement_genre->execute();
@@ -20,58 +30,49 @@ $genre_to_category = [
 ];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
     $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $release_date = filter_input(INPUT_POST, 'release_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
     if (empty($title) || empty($description) || empty($genre) || empty($release_date)) {
-        header('Location: errormsg.php'); 
-        exit; 
+        $error_message = 'All fields are required.';
     } else {
-        if (array_key_exists($genre, $genre_to_category)) {
-            $category_id = $genre_to_category[$genre];
-        } else {
-            $category_id = 0;  
-        }
-
-        $query = "INSERT INTO games (title, description, genre, release_date, category_id) 
-                  VALUES (:title, :description, :genre, :release_date, :category_id)";
-        $statement = $db->prepare($query);
-
-        $statement->bindValue(':title', $title);
-        $statement->bindValue(':description', $description);
-        $statement->bindValue(':genre', $genre);
-        $statement->bindValue(':release_date', $release_date);
-        $statement->bindValue(':category_id', $category_id); 
-
-        $statement->execute();
-
-        $game_id = $db->lastInsertId();
+        $category_id = array_key_exists($genre, $genre_to_category) ? $genre_to_category[$genre] : 0;
 
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
             $image_filename = $_FILES['image']['name'];
             $temporary_image_path = $_FILES['image']['tmp_name'];
 
-            function file_upload_path($original_filename, $upload_subfolder_name = 'uploads') {
-                $current_folder = dirname(__FILE__);
-                $path_segments = [$current_folder, $upload_subfolder_name, basename($original_filename)];
-                return join(DIRECTORY_SEPARATOR, $path_segments);
-            }
-
             $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
+            $file_extension = strtolower(pathinfo($image_filename, PATHINFO_EXTENSION));
             $actual_mime_type = mime_content_type($temporary_image_path);
-            $file_extension = pathinfo($image_filename, PATHINFO_EXTENSION);
 
-            if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
+            if (!in_array($actual_mime_type, $allowed_mime_types) || !in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
+                $error_message = 'Invalid file type. Please upload a JPG, PNG, or GIF image.';
+            }
+        }
+
+        if (empty($error_message)) {
+            $query = "INSERT INTO games (title, description, genre, release_date, category_id) 
+                      VALUES (:title, :description, :genre, :release_date, :category_id)";
+            $statement = $db->prepare($query);
+            $statement->bindValue(':title', $title);
+            $statement->bindValue(':description', $description);
+            $statement->bindValue(':genre', $genre);
+            $statement->bindValue(':release_date', $release_date);
+            $statement->bindValue(':category_id', $category_id);
+            $statement->execute();
+
+            $game_id = $db->lastInsertId();
+
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
                 try {
-                    $image = new \Gumlet\ImageResize($temporary_image_path);
+                    $image = new ImageResize($temporary_image_path);
                     $image->resizeToWidth(400);
 
                     $image_medium_filename = pathinfo($image_filename, PATHINFO_FILENAME) . '_medium.' . $file_extension;
                     $image_medium_path = file_upload_path($image_medium_filename);
-
                     $image->save($image_medium_path);
 
                     $medium_image_path = 'uploads/' . $image_medium_filename;
@@ -83,13 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $statement_image_medium->bindValue(':game_id', $game_id);
                     $statement_image_medium->execute();
                 } catch (Exception $e) {
-                    echo "Error resizing image: " . $e->getMessage();
+                    $error_message = 'Error resizing image: ' . $e->getMessage();
                 }
             }
-        }
 
-        header('Location: index.php');
-        exit; 
+            if (empty($error_message)) {
+                header('Location: index.php');
+                exit;
+            }
+        }
     }
 }
 ?>
@@ -109,6 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="menu">    
             <h1><a href="index.php">Return Home</a></h1>
         </div>
+                <?php if (!empty($error_message)): ?>
+            <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
+        <?php endif; ?>
+
         <form method="post" action="create.php" enctype="multipart/form-data">
             <label for="title">Title</label>
             <input id="title" name="title" type="text" required />

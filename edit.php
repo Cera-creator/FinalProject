@@ -4,67 +4,14 @@ require('authenticate.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
-function file_is_an_image($temporary_path, $new_path) {
-    $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
-    $allowed_file_extensions = ['gif', 'jpg', 'jpeg', 'png'];
+$error_message = '';
 
-    $actual_file_extension = strtolower(pathinfo($new_path, PATHINFO_EXTENSION)); 
-    $actual_mime_type = mime_content_type($temporary_path);
+use \Gumlet\ImageResize;
 
-    $file_extension_is_valid = in_array($actual_file_extension, $allowed_file_extensions);
-    $mime_type_is_valid = in_array($actual_mime_type, $allowed_mime_types);
-
-    return $file_extension_is_valid && $mime_type_is_valid;
-}
-
-function resize_image($image_path, $max_width, $max_height) {
-    list($width, $height, $image_type) = getimagesize($image_path);  
-    $aspect_ratio = $width / $height;
-
-    if ($width > $height) {
-        $new_width = $max_width;
-        $new_height = $max_width / $aspect_ratio;
-    } else {
-        $new_height = $max_height;
-        $new_width = $max_height * $aspect_ratio;
-    }
-
-    switch ($image_type) {
-        case IMAGETYPE_JPEG:
-            $src = imagecreatefromjpeg($image_path);
-            break;
-        case IMAGETYPE_PNG:
-            $src = imagecreatefrompng($image_path);
-            break;
-        case IMAGETYPE_GIF:
-            $src = imagecreatefromgif($image_path);
-            break;
-        default:
-            return false;
-    }
-
-    $dst = imagecreatetruecolor($new_width, $new_height);
-
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
-
-    $resized_image_path = 'uploads/' . pathinfo($image_path, PATHINFO_FILENAME) . '_medium.' . pathinfo($image_path, PATHINFO_EXTENSION);
-
-    switch ($image_type) {
-        case IMAGETYPE_JPEG:
-            imagejpeg($dst, $resized_image_path);
-            break;
-        case IMAGETYPE_PNG:
-            imagepng($dst, $resized_image_path);
-            break;
-        case IMAGETYPE_GIF:
-            imagegif($dst, $resized_image_path);
-            break;
-    }
-
-    imagedestroy($src);
-    imagedestroy($dst);
-
-    return $resized_image_path;
+function file_upload_path($original_filename, $upload_subfolder_name = 'uploads') {
+    $current_folder = dirname(__FILE__);
+    $path_segments = [$current_folder, $upload_subfolder_name, basename($original_filename)];
+    return join(DIRECTORY_SEPARATOR, $path_segments);
 }
 
 $query_genre = "SELECT DISTINCT genre FROM games";  
@@ -72,22 +19,19 @@ $statement_genre = $db->prepare($query_genre);
 $statement_genre->execute();
 $genres = $statement_genre->fetchAll(PDO::FETCH_ASSOC);
 
-if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_POST['id']) && isset($_POST['genre']) && isset($_POST['update'])) {
+if ($_POST && isset($_POST['title'], $_POST['description'], $_POST['id'], $_POST['genre'], $_POST['update'])) {
     $title  = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);  
-    $id      = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-    $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_STRING); 
+    $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+    $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
     if (empty($title) || empty($description)) {
-        header('Location: errormsg.php');
-        exit;
+        $error_message = 'Title and description are required.';
     }
 
     $timezone = new DateTimeZone('America/Winnipeg');
     $datetime = new DateTime('now', $timezone);
     $updated_at = $datetime->format('Y-m-d H:i:s');
-    
-    $image_path = null;
 
     if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
         $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
@@ -97,7 +41,7 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
         $image = $statement_image->fetch(PDO::FETCH_ASSOC);
 
         if ($image && file_exists($image['image_path'])) {
-            unlink($image['image_path']); 
+            unlink($image['image_path']);
         }
 
         $query_delete_image = "DELETE FROM images WHERE game_id = :game_id";
@@ -109,58 +53,55 @@ if ($_POST && isset($_POST['title']) && isset($_POST['description']) && isset($_
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
         $image_filename = $_FILES['image']['name'];
         $temporary_image_path = $_FILES['image']['tmp_name'];
-        $new_image_path = 'uploads/' . basename($image_filename);
 
-        if (!file_is_an_image($temporary_image_path, $new_image_path)) {
+        $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
+        $actual_mime_type = mime_content_type($temporary_image_path);
+        $file_extension = strtolower(pathinfo($image_filename, PATHINFO_EXTENSION));
+
+        if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
+            try {
+                $image = new ImageResize($temporary_image_path);
+                $image->resizeToWidth(400);
+
+                $image_medium_filename = pathinfo($image_filename, PATHINFO_FILENAME) . '_medium.' . $file_extension;
+                $image_medium_path = file_upload_path($image_medium_filename);
+
+                $image->save($image_medium_path);
+
+                $medium_image_path = 'uploads/' . $image_medium_filename;
+
+                $query_image = "INSERT INTO images (image_path, game_id) 
+                                VALUES (:image_path, :game_id)
+                                ON DUPLICATE KEY UPDATE image_path = :image_path";
+                $statement_image = $db->prepare($query_image);
+                $statement_image->bindValue(':image_path', $medium_image_path);
+                $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+                $statement_image->execute();
+            } catch (Exception $e) {
+                $error_message = 'Error resizing image: ' . $e->getMessage();
+            }
+        } else {
+            $error_message = 'Invalid file type. Please upload a JPG, PNG, or GIF.';
+        }
+    }
+
+    if (empty($error_message)) {
+        $query = "UPDATE games 
+                  SET title = :title, description = :description, genre = :genre, updated_at = :updated_at 
+                  WHERE id = :id";
+        $statement = $db->prepare($query);
+        $statement->bindValue(':title', $title);
+        $statement->bindValue(':description', $description);  
+        $statement->bindValue(':genre', $genre);
+        $statement->bindValue(':updated_at', $updated_at);
+        $statement->bindValue(':id', $id, PDO::PARAM_INT);
+
+        if ($statement->execute()) {
             header("Location: index.php?id={$id}");
             exit;
+        } else {
+            $error_message = "Database error: " . implode(", ", $statement->errorInfo());
         }
-
-        move_uploaded_file($temporary_image_path, $new_image_path);
-        
-        $medium_image_path = resize_image($new_image_path, 300, 300); 
-
-        unlink($new_image_path);
-
-        $query_image = "INSERT INTO images (image_path, game_id) VALUES (:image_path, :game_id)
-                        ON DUPLICATE KEY UPDATE image_path = :image_path";
-        $statement_image = $db->prepare($query_image);
-        $statement_image->bindValue(':image_path', $medium_image_path);
-        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-        $statement_image->execute();
-    }
-
-    if (!$image_path) {
-        $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
-        $statement_image = $db->prepare($query_image);
-        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-        $statement_image->execute();
-        $image = $statement_image->fetch(PDO::FETCH_ASSOC);
-        $image_path = $image ? $image['image_path'] : null;
-    }
-
-    $query = "UPDATE games SET title = :title, description = :description, genre = :genre, updated_at = :updated_at WHERE id = :id";
-    $statement = $db->prepare($query);
-    $statement->bindValue(':title', $title);
-    $statement->bindValue(':description', $description);  
-    $statement->bindValue(':genre', $genre);
-    $statement->bindValue(':updated_at', $updated_at);
-    $statement->bindValue(':id', $id, PDO::PARAM_INT);
-
-    if ($statement->execute()) {
-        if ($image_path) {
-            $query_image = "INSERT INTO images (image_path, game_id) VALUES (:image_path, :game_id)
-                            ON DUPLICATE KEY UPDATE image_path = :image_path";
-            $statement_image = $db->prepare($query_image);
-            $statement_image->bindValue(':image_path', $image_path);
-            $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-            $statement_image->execute();
-        }
-
-        header("Location: index.php?id={$id}");
-        exit;
-    } else {
-        echo "Error: " . implode(", ", $statement->errorInfo());
     }
 }
 
@@ -170,7 +111,6 @@ if (isset($_GET['id'])) {
     $query = "SELECT * FROM games WHERE id = :id";
     $statement = $db->prepare($query);
     $statement->bindValue(':id', $id, PDO::PARAM_INT);
-
     $statement->execute();
     $row = $statement->fetch();
 
@@ -179,12 +119,12 @@ if (isset($_GET['id'])) {
     $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
     $statement_image->execute();
     $image = $statement_image->fetch(PDO::FETCH_ASSOC);
+
 } elseif ($_POST && isset($_POST['delete'])) {
     $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
 
     $query = "DELETE FROM games WHERE id = :id";
     $statement = $db->prepare($query);
-
     $statement->bindValue(':id', $id, PDO::PARAM_INT);
     $statement->execute();
 
@@ -209,19 +149,25 @@ if (isset($_GET['id'])) {
         <div id="menu">    
             <h1><a href="index.php">Return Home</a></h1>
         </div>
+
+        <?php if (!empty($error_message)): ?>
+            <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
+        <?php endif; ?>
+
         <?php if ($id): ?>
             <form action="edit.php" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="id" value="<?= $row['id'] ?>">
 
                 <label for="title">Title</label>
-                <input id="title" name="title" value="<?= $row['title'] ?>">
+                <input id="title" name="title" value="<?= isset($title) ? htmlspecialchars($title) : htmlspecialchars($row['title']) ?>" />
 
                 <label for="description">Description</label>
-                <textarea id="description" name="description"><?= $row['description'] ?></textarea> 
+                <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea> 
+
                 <label for="genre">Genre</label>
                 <select id="genre" name="genre">
                     <?php foreach ($genres as $genre_option): ?>
-                        <option value="<?= $genre_option['genre'] ?>" <?= $row['genre'] == $genre_option['genre'] ? 'selected' : '' ?>>
+                        <option value="<?= $genre_option['genre'] ?>" <?= isset($genre) && $genre == $genre_option['genre'] ? 'selected' : ($row['genre'] == $genre_option['genre'] ? 'selected' : '') ?>>
                             <?= htmlspecialchars($genre_option['genre']) ?>
                         </option>
                     <?php endforeach; ?>
@@ -230,22 +176,23 @@ if (isset($_GET['id'])) {
                 <label for="image">New Image (optional)</label>
                 <input type="file" id="image" name="image" accept="image/*" />
 
-<?php if ($image): ?>
-    <div class="current-image">
-        <p>Current Image:</p>
-        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
-    </div>
+                <?php if ($image): ?>
+                    <div class="current-image">
+                        <p>Current Image:</p>
+                        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
+                    </div>
 
-    <label for="delete_image">Delete Image</label>
-    <input type="checkbox" id="delete_image" name="delete_image" value="1" />
-<?php else: ?>
-    <p>No image available.</p>
-<?php endif; ?>
+                    <label for="delete_image">Delete Image</label>
+                    <input type="checkbox" id="delete_image" name="delete_image" value="1" />
+                <?php else: ?>
+                    <p>No image available.</p>
+                <?php endif; ?>
 
                 <input type="submit" name="update" value="Update" />
                 <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />
             </form>
-        <?php endif ?>
+        <?php endif; ?>
+
         <?php
             $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
         <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
