@@ -67,20 +67,14 @@ $statement->execute();
                 <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
                     <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
                 <?php endwhile; ?>
+<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+    <a href="categories.php">Manage Categories</a>
+<?php endif; ?>
+                <br>
+                <li><a href="create.php">Add A Game</a></li>
             </ul>
+            <p> Welcome to a list of my top rated games! </p>
         </div>
-        <ul class="games-list" style="display: <?= isset($_GET['category_id']) || !empty($categoryId) ? 'block' : 'none'; ?>;">
-            <?php while ($row = $statement->fetch(PDO::FETCH_ASSOC)): ?>
-                <h2>Available Games</h2>
-                <li>
-                    <h3>
-                        <a href="fullgame.php?id=<?= $row['id'] ?>"><?= htmlspecialchars($row['title']) ?></a>
-                    </h3>
-                    <p><strong>Genre: </strong><?= htmlspecialchars($row['genre']) ?></p>
-                    <p><strong>Release Date: </strong><?= htmlspecialchars($row['release_date']) ?></p>
-                </li>
-            <?php endwhile; ?>
-        </ul>
     </div>
         <div id="didYouKnow" class="did-you-know-box">
     </div>

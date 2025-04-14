@@ -34,7 +34,10 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
             if (isset($_GET['id']) && !empty($_GET['id'])) {
                 $game_id = $_GET['id'];
 
-                $query = "SELECT * FROM games WHERE id = :id";
+                // Fetch the game details and join with genre table to get genre name
+                $query = "SELECT games.*, genre.name AS genre_name FROM games
+                          LEFT JOIN genre ON games.genre_id = genre.id
+                          WHERE games.id = :id";
                 $statement = $db->prepare($query);
                 $statement->bindValue(':id', $game_id, PDO::PARAM_INT);
                 $statement->execute();
@@ -53,7 +56,7 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
 
                 $title = $row['title'];
                 $description = nl2br(htmlspecialchars($row['description']));
-                $genre = htmlspecialchars($row['genre']);
+                $genre_name = htmlspecialchars($row['genre_name']); 
                 $release_date = htmlspecialchars($row['release_date']);
             }
             ?>
@@ -64,7 +67,7 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <br>
             <div class="genre">
-                <strong>Genre: </strong><?= $genre ?>
+                <strong>Genre: </strong><?= $genre_name ?>
             </div>
             <br>
             <div class="release">
@@ -76,8 +79,7 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
                     <?php
                         $medium_image_path = 'uploads/' . pathinfo($image['image_path'], PATHINFO_FILENAME) . '_medium.' . pathinfo($image['image_path'], PATHINFO_EXTENSION);
                     ?>
-        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
-    </div>
+                    <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
                 </div>
             <?php else: ?>
                 <p>No image available.</p>

@@ -11,6 +11,9 @@ if (isset($_GET['sort_by'])) {
         case 'title':
             $orderBy = 'title ASC';
             break;
+        case 'genre':
+            $orderBy = 'genre ASC';
+            break;
         case 'release_date':
             $orderBy = 'release_date ASC';
             break;
@@ -28,12 +31,22 @@ $categoryStatement = $db->prepare($categoryQuery);
 $categoryStatement->execute();
 
 $categoryFilter = '';
+
 if (isset($_GET['category_id'])) {
     $categoryId = (int) $_GET['category_id'];  
-    $categoryFilter = " WHERE category_id = :category_id";
+    $categoryFilter = " WHERE games.category_id = :category_id";
 }
 
-$query = "SELECT * FROM games" . $categoryFilter . " ORDER BY $orderBy";
+$query = "
+    SELECT games.*, genre.name AS genre_name
+    FROM games
+    JOIN genre ON games.genre_id = genre.id
+";
+
+$query .= $categoryFilter;
+
+$query .= " ORDER BY " . $orderBy;
+
 $statement = $db->prepare($query);
 
 if ($categoryFilter) {
@@ -66,6 +79,10 @@ $statement->execute();
             <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
                 <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
             <?php endwhile; ?>
+<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+    <a href="categories.php">Manage Categories</a>
+<?php endif; ?>
+
             <br>
                 <li><a href="create.php">Add A Game</a></li>
             </ul>
@@ -75,6 +92,7 @@ $statement->execute();
                 <label for="sort_by">Sort by: </label>
                 <select name="sort_by" id="sort_by" onchange="this.form.submit()">
                     <option value="title" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'title') ? 'selected' : ''; ?>>Title</option>
+                       <option value="genre_id" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'genre_id') ? 'selected' : ''; ?>>Genre</option>
                     <option value="release_date" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'release_date') ? 'selected' : ''; ?>>Release Date</option>
                     <option value="updated_at" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'updated_at') ? 'selected' : ''; ?>>Recently Updated</option>
                 </select>
@@ -90,7 +108,8 @@ $statement->execute();
                         <h3>
                             <a href="fullgame.php?id=<?= $row['id'] ?>"><?= htmlspecialchars($row['title']) ?></a>
                         </h3>
-                        <p><strong>Genre: </strong><?= htmlspecialchars($row['genre']) ?></p>
+<p><strong>Genre: </strong><?= htmlspecialchars($row['genre_name']) ?></p>
+
                         <p><strong>Release Date: </strong><?= htmlspecialchars($row['release_date']) ?></p>
                     </li>
                 <?php endwhile; ?>

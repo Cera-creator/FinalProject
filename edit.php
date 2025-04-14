@@ -4,9 +4,9 @@ require('authenticate.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
-$error_message = '';
-
 use \Gumlet\ImageResize;
+
+$error_message = '';
 
 function file_upload_path($original_filename, $upload_subfolder_name = 'uploads') {
     $current_folder = dirname(__FILE__);
@@ -14,19 +14,40 @@ function file_upload_path($original_filename, $upload_subfolder_name = 'uploads'
     return join(DIRECTORY_SEPARATOR, $path_segments);
 }
 
-$query_genre = "SELECT DISTINCT genre FROM games";  
+$query_genre = "SELECT DISTINCT id, name FROM genre";
 $statement_genre = $db->prepare($query_genre);
 $statement_genre->execute();
-$genres = $statement_genre->fetchAll(PDO::FETCH_ASSOC);
+$genre = $statement_genre->fetchAll(PDO::FETCH_ASSOC);
+
+$query_categories = "SELECT * FROM categories ORDER BY name ASC";
+$statement_categories = $db->prepare($query_categories);
+$statement_categories->execute();
+$categories = $statement_categories->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_POST && isset($_POST['title'], $_POST['description'], $_POST['id'], $_POST['genre'], $_POST['update'])) {
-    $title  = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-    $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);  
+    $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-    $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT);
+
+    $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
+
+    $query_genre_name = "SELECT name FROM genre WHERE id = :genre_id";
+    $statement_genre_name = $db->prepare($query_genre_name);
+    $statement_genre_name->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+    $statement_genre_name->execute();
+    $genre_data = $statement_genre_name->fetch(PDO::FETCH_ASSOC);
+    $genre_name = $genre_data ? $genre_data['name'] : null;
+
 
     if (empty($title) || empty($description)) {
         $error_message = 'Title and description are required.';
+    }
+    if (empty($category_id)) {
+        $error_message = 'Please select a category.';
+    }
+    if (empty($genre_name)) {
+        $error_message = 'Please select a valid genre.';
     }
 
     $timezone = new DateTimeZone('America/Winnipeg');
@@ -86,15 +107,18 @@ if ($_POST && isset($_POST['title'], $_POST['description'], $_POST['id'], $_POST
     }
 
     if (empty($error_message)) {
-        $query = "UPDATE games 
-                  SET title = :title, description = :description, genre = :genre, updated_at = :updated_at 
-                  WHERE id = :id";
-        $statement = $db->prepare($query);
-        $statement->bindValue(':title', $title);
-        $statement->bindValue(':description', $description);  
-        $statement->bindValue(':genre', $genre);
-        $statement->bindValue(':updated_at', $updated_at);
-        $statement->bindValue(':id', $id, PDO::PARAM_INT);
+$query = "UPDATE games 
+          SET title = :title, description = :description, genre_id = :genre_id, category_id = :category_id, updated_at = :updated_at
+          WHERE id = :id";
+
+$statement = $db->prepare($query);
+$statement->bindValue(':title', $title);
+$statement->bindValue(':description', $description);  
+$statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+$statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+$statement->bindValue(':updated_at', $updated_at);
+$statement->bindValue(':id', $id, PDO::PARAM_INT);
+
 
         if ($statement->execute()) {
             header("Location: index.php?id={$id}");
@@ -164,38 +188,41 @@ if (isset($_GET['id'])) {
                 <label for="description">Description</label>
                 <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea> 
 
-                <label for="genre">Genre</label>
-                <select id="genre" name="genre">
-                    <?php foreach ($genres as $genre_option): ?>
-                        <option value="<?= $genre_option['genre'] ?>" <?= isset($genre) && $genre == $genre_option['genre'] ? 'selected' : ($row['genre'] == $genre_option['genre'] ? 'selected' : '') ?>>
-                            <?= htmlspecialchars($genre_option['genre']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+<label for="genre">Genre</label>
+<select id="genre_id" name="genre_id">
+    <?php foreach ($genre as $genre_option): ?>
 
-                <label for="image">New Image (optional)</label>
-                <input type="file" id="image" name="image" accept="image/*" />
+        <option value="<?= $genre_option['id'] ?>" <?= (isset($genre_id) && $genre_id == $genre_option['id']) || (isset($row['genre_id']) && $row['genre_id'] == $genre_option['id']) ? 'selected' : '' ?>>
+            <?= htmlspecialchars($genre_option['name']) ?>
+        </option>
+    <?php endforeach; ?>
+</select>
+                <label for="category">Category</label>
+                <select id="category" name="category_id">
+                    <?php foreach ($categories as $category_option): ?>
+                        <option value="<?= $category_option['id'] ?>" <?= (isset($category_id) && $category_id == $category_option
+['id']) ? 'selected' : '' ?>> <?= htmlspecialchars($category_option['name']) ?> </option> <?php endforeach; ?> </select>
+            <label for="image">New Image (optional)</label>
+            <input type="file" id="image" name="image" accept="image/*" />
 
-                <?php if ($image): ?>
-                    <div class="current-image">
-                        <p>Current Image:</p>
-                        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
-                    </div>
+            <?php if ($image): ?>
+                <div class="current-image">
+                    <p>Current Image:</p>
+                    <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
+                </div>
 
-                    <label for="delete_image">Delete Image</label>
-                    <input type="checkbox" id="delete_image" name="delete_image" value="1" />
-                <?php else: ?>
-                    <p>No image available.</p>
-                <?php endif; ?>
+                <label for="delete_image">Delete Image</label>
+                <input type="checkbox" id="delete_image" name="delete_image" value="1" />
+            <?php else: ?>
+                <p>No image available.</p>
+            <?php endif; ?>
 
-                <input type="submit" name="update" value="Update" />
-                <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />
-            </form>
-        <?php endif; ?>
+            <input type="submit" name="update" value="Update" />
+            <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />
+        </form>
+    <?php endif; ?>
 
-        <?php
-            $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
-        <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
-    </div>
-</body>
-</html>
+    <?php
+        $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
+    <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
+</div>

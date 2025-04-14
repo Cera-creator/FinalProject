@@ -14,32 +14,26 @@ function file_upload_path($original_filename, $upload_subfolder_name = 'uploads'
     return join(DIRECTORY_SEPARATOR, $path_segments);
 }
 
-$query_genre = "SELECT DISTINCT genre FROM games";  
+$query_genre = "SELECT * FROM genre ORDER BY name ASC"; 
 $statement_genre = $db->prepare($query_genre);
 $statement_genre->execute();
-$genres = $statement_genre->fetchAll(PDO::FETCH_ASSOC);
+$genre = $statement_genre->fetchAll(PDO::FETCH_ASSOC);
 
-$genre_to_category = [
-    'Tower Defense' => 1, 
-    'Adventure' => 2, 
-    'Free To Play' => 3, 
-    'Roguelike' => 4,
-    'Survival Horror' => 5,
-    'Simulation' => 6,
-    'Open World' => 7
-];
+$query_category = "SELECT * FROM categories ORDER BY name ASC";  
+$statement_category = $db->prepare($query_category);
+$statement_category->execute();
+$categories = $statement_category->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-    $genre = filter_input(INPUT_POST, 'genre', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT); // genre_id, not genre
+    $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
     $release_date = filter_input(INPUT_POST, 'release_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-    if (empty($title) || empty($description) || empty($genre) || empty($release_date)) {
+    if (empty($title) || empty($description) || empty($genre_id) || empty($release_date)) {
         $error_message = 'All fields are required.';
     } else {
-        $category_id = array_key_exists($genre, $genre_to_category) ? $genre_to_category[$genre] : 0;
-
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
             $image_filename = $_FILES['image']['name'];
             $temporary_image_path = $_FILES['image']['tmp_name'];
@@ -54,14 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if (empty($error_message)) {
-            $query = "INSERT INTO games (title, description, genre, release_date, category_id) 
-                      VALUES (:title, :description, :genre, :release_date, :category_id)";
+
+            $created_at = date('Y-m-d H:i:s');
+            $updated_at = date('Y-m-d H:i:s');
+
+            $query = "INSERT INTO games (title, description, genre_id, category_id, release_date, created_at, updated_at) 
+                      VALUES (:title, :description, :genre_id, :category_id, :release_date, :created_at, :updated_at)";
             $statement = $db->prepare($query);
             $statement->bindValue(':title', $title);
             $statement->bindValue(':description', $description);
-            $statement->bindValue(':genre', $genre);
+            $statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+            $statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
             $statement->bindValue(':release_date', $release_date);
-            $statement->bindValue(':category_id', $category_id);
+            $statement->bindValue(':created_at', $created_at);
+            $statement->bindValue(':updated_at', $updated_at);
             $statement->execute();
 
             $game_id = $db->lastInsertId();
@@ -97,7 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="menu">    
             <h1><a href="index.php">Return Home</a></h1>
         </div>
-                <?php if (!empty($error_message)): ?>
+
+        <?php if (!empty($error_message)): ?>
             <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
         <?php endif; ?>
 
@@ -123,10 +123,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <label for="description">Description</label>
             <textarea id="description" name="description" required></textarea>
 
-            <label for="genre">Genre</label>
-            <select id="genre" name="genre" required>
-                <?php foreach ($genres as $genre_option): ?>
-                    <option value="<?= htmlspecialchars($genre_option['genre']) ?>"><?= htmlspecialchars($genre_option['genre']) ?></option>
+            <label for="genre_id">Genre</label>
+            <select id="genre_id" name="genre_id">
+                <?php foreach ($genre as $genre_option): ?>
+                    <option value="<?= $genre_option['id'] ?>" <?= (isset($genre_id) && $genre_id == $genre_option['id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($genre_option['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <label for="category_id">Category</label>
+            <select id="category_id" name="category_id">
+                <?php foreach ($categories as $category_option): ?>
+                    <option value="<?= $category_option['id'] ?>" <?= (isset($category_id) && $category_id == $category_option['id']) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($category_option['name']) ?>
+                    </option>
                 <?php endforeach; ?>
             </select>
 
