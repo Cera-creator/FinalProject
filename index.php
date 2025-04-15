@@ -1,6 +1,7 @@
 <?php
 session_start();
 require('connect.php');
+include('navbar.php');
 
 $orderBy = 'id DESC'; 
 
@@ -61,23 +62,27 @@ $statement->execute();
                 <a href="index.php">SuperCoolTwitchName's Top Games</a>
             </h1>
         </div>
-            <h3>Browse by Categories</h3>
-            <ul class="tabs">
-                <li><a href="allgames.php" class="<?= !isset($_GET['category_id']) ? 'active' : ''; ?>">All Games</a></li>
-                <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
-                    <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
-                <?php endwhile; ?>
-<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-    <a href="categories.php">Manage Categories</a>
-<?php endif; ?>
-                <br>
+
+        <h3>Browse by Categories</h3>
+        <ul class="tabs">
+            <li><a href="allgames.php" class="<?= !isset($_GET['category_id']) ? 'active' : ''; ?>">All Games</a></li>
+
+            <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
+                <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
+            <?php endwhile; ?>
+
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                <li><a href="categories.php">Manage Categories</a></li>
                 <li><a href="create.php">Add A Game</a></li>
-            </ul>
-            <p> Welcome to a list of my top rated games! </p>
-        </div>
+            <?php endif; ?>
+        </ul>
+
+        <p>Welcome to a list of my top rated games!</p>
     </div>
-        <div id="didYouKnow" class="did-you-know-box">
+
+    <div id="didYouKnow" class="did-you-know-box">
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,10 +1,14 @@
 <?php
+session_start();
 require('connect.php');
+include('navbar.php');
 
-$query = "SELECT * FROM games";
-$statement = $db->prepare($query);
-$statement->execute();
-$games = $statement->fetchAll(PDO::FETCH_ASSOC);
+$game_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+$comments_stmt = $db->prepare("SELECT * FROM comments WHERE game_id = ? ORDER BY created_at DESC");
+$comments_stmt->execute([$game_id]);
+$comments = $comments_stmt->fetchAll();
+
 ?>
 
 <!DOCTYPE html>
@@ -23,27 +27,20 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
                 <a href="index.php">SuperCoolTwitchName's Top Games</a>
             </h1>
         </div>
-
-        <div id="menu">    
-            <a href="index.php">Home</a>
-            <a href="create.php">New Game</a>
-        </div>
-
         <div class="game-details">
             <?php
             if (isset($_GET['id']) && !empty($_GET['id'])) {
                 $game_id = $_GET['id'];
 
-                // Fetch the game details and join with genre table to get genre name
                 $query = "SELECT games.*, genre.name AS genre_name FROM games
                           LEFT JOIN genre ON games.genre_id = genre.id
                           WHERE games.id = :id";
                 $statement = $db->prepare($query);
                 $statement->bindValue(':id', $game_id, PDO::PARAM_INT);
                 $statement->execute();
-                $row = $statement->fetch(PDO::FETCH_ASSOC);
+                $game = $statement->fetch(PDO::FETCH_ASSOC);
 
-                if (!$row) {
+                if (!$game) {
                     echo "Game not found!";
                     exit;
                 }
@@ -54,10 +51,10 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
                 $statement_image->execute();
                 $image = $statement_image->fetch(PDO::FETCH_ASSOC);
 
-                $title = $row['title'];
-                $description = nl2br(htmlspecialchars($row['description']));
-                $genre_name = htmlspecialchars($row['genre_name']); 
-                $release_date = htmlspecialchars($row['release_date']);
+                $title = $game['title'];
+                $description = nl2br(htmlspecialchars($game['description']));
+                $genre_name = htmlspecialchars($game['genre_name']); 
+                $release_date = htmlspecialchars($game['release_date']);
             }
             ?>
 
@@ -88,16 +85,71 @@ $games = $statement->fetchAll(PDO::FETCH_ASSOC);
             <div id="edit">
                 <p>Updated On: 
                     <?php
-                        $formattedDate = date("F d, Y, h:i a", strtotime($row['updated_at']));
+                        $formattedDate = date("F d, Y, h:i a", strtotime($game['updated_at']));
                         echo $formattedDate;
                     ?>
                 </p>
-                <a href="edit.php?id=<?= $row['id'] ?>">Edit</a>
+                <a href="edit.php?id=<?= $game['id'] ?>">Edit</a>
                 <?php
                     $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';
                 ?>
                 <button class="back-btn" onclick="window.location.href='<?= $previousPage ?>'">Go Back</button>
             </div>
+<div class="comments-section">
+    <h3>Comments</h3>
+
+    <?php if (count($comments) === 0): ?>
+        <p>No comments yet. Be the first to comment!</p>
+    <?php else: ?>
+        <?php foreach ($comments as $comment): ?>
+            <div class="comment">
+                <strong>
+                    <?php
+                        if (!empty($comment['name'])) {
+                            echo htmlspecialchars($comment['name']);
+                        } elseif (!empty($comment['user_id'])) {
+                            echo "User #" . $comment['user_id'];
+                        } else {
+                            echo "Anonymous";
+                        }
+                    ?>
+                </strong>
+                <em><?= date('F j, Y, g:i a', strtotime($comment['created_at'])) ?></em>
+                <p><?= nl2br(htmlspecialchars($comment['content'])) ?></p>
+                <?php if (!empty($comment['rating'])): ?>
+                    <p>Rating: <?= (int)$comment['rating'] ?>/5</p>
+                <?php endif; ?>
+            </div>
+            <hr>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+
+<?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['user', 'admin'])): ?>
+    <div class="comment-form">
+        <h3>Leave a Comment</h3>
+        <form method="post" action="comment.php">
+            <input type="hidden" name="game_id" value="<?= $game_id ?>">
+
+            <p>
+                <label for="comment">Your Comment:</label><br>
+                <textarea name="comment" id="comment" required rows="4" cols="50"></textarea>
+            </p>
+
+            <p>
+                <label for="rating">Rating (1-5):</label><br>
+                <input type="number" name="rating" id="rating" min="1" max="5">
+            </p>
+
+            <button type="submit">Post Comment</button>
+        </form>
+    </div>
+<?php else: ?>
+    <p><em>You must be logged in as a user or admin to leave a comment.</em></p>
+    <a href="login.php">Log in</a> or <a href="register.php">register</a> to join the conversation!
+<?php endif; ?>
+
+
         </div>
     </div>
 

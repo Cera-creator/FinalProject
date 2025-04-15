@@ -1,6 +1,7 @@
 <?php
 session_start();
 require('connect.php');
+include('navbar.php');
 
 $orderBy = 'id DESC'; 
 
@@ -8,12 +9,9 @@ if (isset($_GET['sort_by'])) {
     $sortBy = $_GET['sort_by'];
     
     switch ($sortBy) {
-        case 'title':
-            $orderBy = 'title ASC';
-            break;
-        case 'genre':
-            $orderBy = 'genre ASC';
-            break;
+    case 'genre':
+        $orderBy = 'genre.name ASC'; 
+        break;
         case 'release_date':
             $orderBy = 'release_date ASC';
             break;
@@ -83,21 +81,25 @@ $statement->execute();
     <a href="categories.php">Manage Categories</a>
 <?php endif; ?>
 
-            <br>
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
                 <li><a href="create.php">Add A Game</a></li>
+            <?php endif; ?>
             </ul>
 
-        <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
-            <form method="GET" action="allgames.php">
-                <label for="sort_by">Sort by: </label>
-                <select name="sort_by" id="sort_by" onchange="this.form.submit()">
-                    <option value="title" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'title') ? 'selected' : ''; ?>>Title</option>
-                       <option value="genre_id" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'genre_id') ? 'selected' : ''; ?>>Genre</option>
-                    <option value="release_date" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'release_date') ? 'selected' : ''; ?>>Release Date</option>
-                    <option value="updated_at" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'updated_at') ? 'selected' : ''; ?>>Recently Updated</option>
-                </select>
-            </form>
-        <?php endif; ?>
+<form method="GET" action="allgames.php">
+    <label for="sort_by">Sort by: </label>
+    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+        <option value="title" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'title') ? 'selected' : ''; ?>>Title</option>
+        <option value="genre" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'genre') ? 'selected' : ''; ?>>Genre</option>
+        <option value="release_date" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'release_date') ? 'selected' : ''; ?>>Release Date</option>
+        <option value="updated_at" <?php echo (isset($_GET['sort_by']) && $_GET['sort_by'] == 'updated_at') ? 'selected' : ''; ?>>Recently Updated</option>
+    </select>
+
+    <?php if (isset($_GET['category_id'])): ?>
+        <input type="hidden" name="category_id" value="<?= htmlspecialchars($_GET['category_id']) ?>">
+    <?php endif; ?>
+</form>
+
 
         <div id="menu">
 
