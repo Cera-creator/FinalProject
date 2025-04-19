@@ -131,3 +131,271 @@ strong {
     transition: opacity 0.5s ease-in-out;
     z-index: 1000;
 }
+
+
+.comments{
+
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f9f9f9;
+  font-weight: 600;
+  color: #111;
+}
+
+tr:hover {
+  background-color: #f5f5f5;
+}
+nav {
+    background-color: #f2f2f2; 
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e2e2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+}
+
+.nav-left {
+    display: flex;
+    gap: .5rem;
+}
+
+.nav-left a, button {
+    color: #333;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border: 1px solid #e4b4c7;
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nav-left a:hover, button:hover {
+    background-color: #ffe0eb;
+    color: #333;
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+button{
+    font-size: 1.2em;
+}
+
+.nav-right {
+    color: #333;
+    padding: 0.5rem 1rem;
+
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropbtn {
+    background-color: #ffffff;
+    color: #333;
+    cursor: pointer;
+    font-size: 1.2em;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e4b4c7;
+}
+
+.dropbtn:hover {
+    background-color: lightgrey;
+    transform: scale(1.05);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #ffffff;
+    min-width: 180px;
+    border: 1px solid lightgrey;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #333;
+    padding: 0.75rem 1rem;
+    display: block;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: lightgrey;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+nav span{
+    font-size: 1.4em;
+}
+
+
+footer {
+    background-color: lightgrey;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 3rem;
+    border-top: 1px solid lightgrey;
+}
+
+footer a {
+    color: black;
+    margin: 0 0.5rem;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+body.dark-mode {
+    background-color: #1e1e2f;
+    color: #e0e0e0;
+}
+
+body.dark-mode #header {
+    background-color: #3a2b47;
+}
+
+body.dark-mode #header h1 a {
+    color: #e0e0e0;
+}
+
+body.dark-mode #header h1 a:hover {
+    color: #7ddac4;
+}
+
+body.dark-mode #menu {
+    background-color: #2b2b3d;
+}
+
+body.dark-mode h2,
+body.dark-mode h3 a,
+body.dark-mode strong {
+    color: #e0e0e0;
+}
+
+body.dark-mode a {
+    color: #e0e0e0;
+}
+
+body.dark-mode a:hover {
+    color: #7ddac4;
+}
+
+body.dark-mode .tabs a {
+    background-color: #3a2b47;
+    color: #e0e0e0;
+}
+
+body.dark-mode .tabs a.active {
+    background-color: #7ddac4;
+    color: #1e1e2f;
+}
+
+body.dark-mode .tabs a:hover {
+    background-color: #5c3e5c;
+}
+
+body.dark-mode button.back-btn {
+    background-color: #7ddac4;
+    color: #1e1e2f;
+}
+
+body.dark-mode button.back-btn:hover {
+    background-color: #5fb998;
+}
+
+body.dark-mode p {
+    color: #bbbbbb;
+}
+
+body.dark-mode .did-you-know-box {
+    background-color: #7ddac4;
+    color: #1e1e2f;
+}
+
+body.dark-mode table {
+    color: #e0e0e0;
+}
+
+body.dark-mode th {
+    background-color: #2b2b3d;
+    color: #ffffff;
+}
+
+body.dark-mode tr:hover {
+    background-color: #33334d;
+}
+
+body.dark-mode nav {
+    background-color: #2b2b3d;
+    border-bottom: 1px solid #444;
+}
+
+body.dark-mode .nav-left a,
+body.dark-mode button,
+body.dark-mode .dropbtn {
+    background-color: #1e1e2f;
+    color: #e0e0e0;
+    border: 1px solid #5c3e5c;
+}
+
+body.dark-mode .nav-left a:hover,
+body.dark-mode button:hover,
+body.dark-mode .dropbtn:hover {
+    background-color: #3a2b47;
+    color: #ffffff;
+}
+
+body.dark-mode .dropdown-content {
+    background-color: #2b2b3d;
+    border: 1px solid #444;
+}
+
+body.dark-mode .dropdown-content a {
+    color: #e0e0e0;
+}
+
+body.dark-mode .dropdown-content a:hover {
+    background-color: #3f3f59;
+}
+
+body.dark-mode footer {
+    background-color: #2b2b3d;
+    border-top: 1px solid #444;
+}
+
+body.dark-mode footer a {
+    color: #cccccc;
+}
+
+.highlight {
+    background-color: #ffe066;
+    color: #000;
+    padding: 0 2px;
+    border-radius: 3px;
+}

@@ -64,22 +64,27 @@ $statement->execute();
     <title>Top Games</title>
 </head>
 <body>
+    <script>
+        // this is being added to avoid refreshing screen flash on dark mode
+  (function() {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+  })();
+</script>
     <div id="wrapper">
         <div id="header">
             <h1>
                 <a href="index.php">SuperCoolTwitchName's Top Games</a>
             </h1>
         </div>
-
         <h3>Browse by Categories</h3>
         <ul class="tabs">
             <li><a href="allgames.php" class="<?= !isset($_GET['category_id']) ? 'active' : ''; ?>">All Games</a></li>
             <?php while ($category = $categoryStatement->fetch(PDO::FETCH_ASSOC)): ?>
                 <li><a href="allgames.php?category_id=<?= $category['id'] ?>" class="<?= isset($_GET['category_id']) && $_GET['category_id'] == $category['id'] ? 'active' : ''; ?>"><?= htmlspecialchars($category['name']) ?></a></li>
             <?php endwhile; ?>
-<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-    <a href="categories.php">Manage Categories</a>
-<?php endif; ?>
 
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
                 <li><a href="create.php">Add A Game</a></li>
@@ -99,10 +104,7 @@ $statement->execute();
         <input type="hidden" name="category_id" value="<?= htmlspecialchars($_GET['category_id']) ?>">
     <?php endif; ?>
 </form>
-
-
         <div id="menu">
-
             <h2>Available Games</h2>
             <ul>
                 <?php while ($row = $statement->fetch(PDO::FETCH_ASSOC)): ?>
@@ -125,4 +127,10 @@ $statement->execute();
     </div>
     <script src="script.js"></script>
 </body>
+<footer style="background:#f2f2f2; padding: 10px; margin-top: 20px;">
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </html>

@@ -69,6 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="cool.css">
 </head>
 <body>
+        <script>
+        // this is being added to avoid refreshing screen flash on dark mode
+  (function() {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+  })();
+</script>
 <div id="wrapper">
     <div id="header">
         <h1><a href="index.php">SuperCoolTwitchName's Top Games</a></h1>
