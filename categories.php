@@ -1,6 +1,7 @@
 <?php
 session_start();
 require('connect.php');
+include('navbar.php');
 
 $error_message = '';
 
@@ -106,8 +107,6 @@ $categories = $db->query("SELECT * FROM categories ORDER BY name ASC")->fetchAll
                 </li>
             <?php endforeach; ?>
         </ul>
-
-        <p><a href="index.php">← Return to Home</a></p>
     </div>
 </body>
 </html>

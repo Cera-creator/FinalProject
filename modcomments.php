@@ -1,6 +1,7 @@
 <?php
 session_start();
 include('connect.php');
+include('navbar.php');
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['user', 'admin'])) {
     header("Location: login.php");
@@ -25,6 +26,10 @@ $comments = $stmt->fetchAll();
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="cool.css">
     <title>Moderate Comments</title>
 </head>
 <body>
@@ -62,6 +67,5 @@ $comments = $stmt->fetchAll();
 <?php else: ?>
     <p>You haven’t posted any comments yet.</p>
 <?php endif; ?>
-<a href="index.php">Back to Home</a>
 </body>
 </html>

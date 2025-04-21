@@ -5,18 +5,18 @@ require('connect.php');
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $confirm = $_POST['confirm_password'] ?? '';
 
-    if (empty($username) || empty($password) || empty($confirm)) {
+    if (empty($email) || empty($password) || empty($confirm)) {
         $errors[] = "All fields are required.";
     } elseif ($password !== $confirm) {
         $errors[] = "Passwords do not match.";
     } else {
 
-        $stmt = $db->prepare("SELECT id FROM users WHERE username = :username");
-        $stmt->execute(['username' => $username]);
+        $stmt = $db->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
         if ($stmt->fetch()) {
             $errors[] = "Username already taken.";
         }
@@ -24,14 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $db->prepare("INSERT INTO users (username, password, role) VALUES (:username, :password, 'user')");
+        $stmt = $db->prepare("INSERT INTO users (email, password, role) VALUES (:email, :password, 'user')");
         $stmt->execute([
-            'username' => $username,
+            'email' => $email,
             'password' => $hashedPassword
         ]);
 
         $_SESSION['user_id'] = $db->lastInsertId();
-        $_SESSION['username'] = $username;
+        $_SESSION['email'] = $email;
         $_SESSION['role'] = 'user';
 
         header("Location: index.php");
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endif; ?>
 
 <form method="POST">
-    <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required>
+    <input type="text" name="email" placeholder="Email@email.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
     <input type="password" name="password" placeholder="Password" required>
     <input type="password" name="confirm_password" placeholder="Confirm Password" required>
     <button type="submit">Register</button>

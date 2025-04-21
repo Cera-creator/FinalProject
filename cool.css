@@ -285,7 +285,7 @@ body.dark-mode #header h1 a {
 }
 
 body.dark-mode #header h1 a:hover {
-    color: #7ddac4;
+    color: black;
 }
 
 body.dark-mode #menu {

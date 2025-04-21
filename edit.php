@@ -1,6 +1,7 @@
 <?php
 require('connect.php');
 require('authenticate.php');
+include('navbar.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 

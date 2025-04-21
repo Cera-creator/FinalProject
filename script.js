@@ -13,16 +13,14 @@ const facts = [
 let currentFactIndex = 0;
 
 function updateFact() {
-    didYouKnowBox.style.opacity = 0; // Fade out
+    didYouKnowBox.style.opacity = 0;
     setTimeout(() => {
         didYouKnowBox.textContent = facts[currentFactIndex];
-        currentFactIndex = (currentFactIndex + 1) % facts.length; // Cycle through facts
-        didYouKnowBox.style.opacity = 1; // Fade in
-    }, 500); // Wait for fade out to finish
+        currentFactIndex = (currentFactIndex + 1) % facts.length; 
+        didYouKnowBox.style.opacity = 1;
+    }, 500); 
 }
 
-// Initial fact
 updateFact();
 
-// Change the fact every 20 seconds
 setInterval(updateFact, 10000);

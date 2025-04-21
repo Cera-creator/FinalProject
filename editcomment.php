@@ -1,6 +1,7 @@
 <?php
 session_start();
 include('connect.php');
+include('navbar.php');
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'user'])) {
     header("Location: login.php");

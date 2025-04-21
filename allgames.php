@@ -127,7 +127,7 @@ $statement->execute();
     </div>
     <script src="script.js"></script>
 </body>
-<footer style="background:#f2f2f2; padding: 10px; margin-top: 20px;">
+<footer style="padding: 10px; margin-top: 20px;">
     <p>Check out more: 
         <a href="https://yourlink1.com">Link 1</a> |
         <a href="https://yourlink2.com">Link 2</a>

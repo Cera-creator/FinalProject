@@ -72,7 +72,6 @@ $statement->execute();
             <?php endwhile; ?>
 
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                <li><a href="categories.php">Manage Categories</a></li>
                 <li><a href="create.php">Add A Game</a></li>
             <?php endif; ?>
         </ul>
