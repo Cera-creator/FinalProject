@@ -1,7 +1,7 @@
 <?php
 session_start();
 require('connect.php');
-
+include('navbar.php');
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -41,19 +41,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="cool.css">
     <title>Register</title>
-    <style>
-        form { max-width: 300px; margin: 50px auto; }
-        input { width: 100%; padding: 8px; margin: 8px 0; }
-        .error { color: red; margin-bottom: 10px; }
-    </style>
 </head>
 <body>
-
-<h2 style="text-align: center;">Register</h2>
-
+<div id="login">
+<h2>Register</h2>
 <?php if ($errors): ?>
     <div class="error">
         <?php foreach ($errors as $error): ?>
@@ -69,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button type="submit">Register</button>
 </form>
 
-<p style="text-align: center;">Already have an account? <a href="login.php">Log in</a></p>
-
+<p>Already have an account? <a href="login.php">Log in</a></p>
+</div>
 </body>
 </html>

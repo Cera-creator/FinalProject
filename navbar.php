@@ -25,17 +25,16 @@ $role = $_SESSION['role'] ?? null;
             </div>
         <?php endif; ?>
     </div>
-
     <?php if (isset($_SESSION['user_id'])): ?>
-        <span class="nav-right">Welcome, <strong><?= htmlspecialchars($email) ?></strong></span>
+        <span>Welcome, <strong><?= htmlspecialchars($email) ?></strong></span>
     <?php endif; ?>
+    <div class="nav-right">
     <form action="search.php" method="GET" id="search-form">
     <input type="text" name="q" placeholder="Search pages..." required>
     <button type="submit">Search</button>
 </form>
-
     <button onclick="darkMode()">Toggle dark mode</button>
-
+</div>
     <script>
 function darkMode() {
     document.body.classList.toggle('dark-mode');
