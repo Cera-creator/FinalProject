@@ -25,108 +25,109 @@ $statement_categories = $db->prepare($query_categories);
 $statement_categories->execute();
 $categories = $statement_categories->fetchAll(PDO::FETCH_ASSOC);
 
-if ($_POST && isset($_POST['title'], $_POST['description'], $_POST['id'], $_POST['genre'], $_POST['update'])) {
-    $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-    $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+if ($_POST) {
     $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-    $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT);
+    
+    if (isset($_POST['update'])) {
+        $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT);
+        $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
 
-    $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
-
-    $query_genre_name = "SELECT name FROM genre WHERE id = :genre_id";
-    $statement_genre_name = $db->prepare($query_genre_name);
-    $statement_genre_name->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
-    $statement_genre_name->execute();
-    $genre_data = $statement_genre_name->fetch(PDO::FETCH_ASSOC);
-    $genre_name = $genre_data ? $genre_data['name'] : null;
-
-
-    if (empty($title) || empty($description)) {
-        $error_message = 'Title and description are required.';
-    }
-    if (empty($category_id)) {
-        $error_message = 'Please select a category.';
-    }
-    if (empty($genre_name)) {
-        $error_message = 'Please select a valid genre.';
-    }
-
-    $timezone = new DateTimeZone('America/Winnipeg');
-    $datetime = new DateTime('now', $timezone);
-    $updated_at = $datetime->format('Y-m-d H:i:s');
-
-    if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
-        $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
-        $statement_image = $db->prepare($query_image);
-        $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-        $statement_image->execute();
-        $image = $statement_image->fetch(PDO::FETCH_ASSOC);
-
-        if ($image && file_exists($image['image_path'])) {
-            unlink($image['image_path']);
+        $error_message = '';
+        if (empty($title) || empty($description)) {
+            $error_message = 'Title and description are required.';
+        }
+        if (empty($category_id)) {
+            $error_message = 'Please select a category.';
+        }
+        if (empty($genre_id)) {
+            $error_message = 'Please select a valid genre.';
         }
 
-        $query_delete_image = "DELETE FROM images WHERE game_id = :game_id";
-        $statement_delete_image = $db->prepare($query_delete_image);
-        $statement_delete_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-        $statement_delete_image->execute();
-    }
+        if ($_FILES['image']['error'] === 0) {
+            $image_filename = $_FILES['image']['name'];
+            $temporary_image_path = $_FILES['image']['tmp_name'];
+            $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
+            $actual_mime_type = mime_content_type($temporary_image_path);
+            $file_extension = strtolower(pathinfo($image_filename, PATHINFO_EXTENSION));
 
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-        $image_filename = $_FILES['image']['name'];
-        $temporary_image_path = $_FILES['image']['tmp_name'];
+            if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
+                try {
+                    $image = new ImageResize($temporary_image_path);
+                    $image->resizeToWidth(400);
 
-        $allowed_mime_types = ['image/gif', 'image/jpeg', 'image/png'];
-        $actual_mime_type = mime_content_type($temporary_image_path);
-        $file_extension = strtolower(pathinfo($image_filename, PATHINFO_EXTENSION));
+                    $image_medium_filename = pathinfo($image_filename, PATHINFO_FILENAME) . '_medium.' . $file_extension;
+                    $image_medium_path = file_upload_path($image_medium_filename);
+                    $image->save($image_medium_path);
 
-        if (in_array($actual_mime_type, $allowed_mime_types) && in_array($file_extension, ['gif', 'jpg', 'jpeg', 'png'])) {
-            try {
-                $image = new ImageResize($temporary_image_path);
-                $image->resizeToWidth(400);
-
-                $image_medium_filename = pathinfo($image_filename, PATHINFO_FILENAME) . '_medium.' . $file_extension;
-                $image_medium_path = file_upload_path($image_medium_filename);
-
-                $image->save($image_medium_path);
-
-                $medium_image_path = 'uploads/' . $image_medium_filename;
-
-                $query_image = "INSERT INTO images (image_path, game_id) 
-                                VALUES (:image_path, :game_id)
-                                ON DUPLICATE KEY UPDATE image_path = :image_path";
-                $statement_image = $db->prepare($query_image);
-                $statement_image->bindValue(':image_path', $medium_image_path);
-                $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
-                $statement_image->execute();
-            } catch (Exception $e) {
-                $error_message = 'Error resizing image: ' . $e->getMessage();
+                    $medium_image_path = 'uploads/' . $image_medium_filename;
+                } catch (Exception $e) {
+                    $error_message = 'Error resizing image: ' . $e->getMessage();
+                }
+            } else {
+                $error_message = 'Invalid file type. Please upload a JPG, PNG, or GIF.';
             }
-        } else {
-            $error_message = 'Invalid file type. Please upload a JPG, PNG, or GIF.';
+        }
+
+        if (empty($error_message)) {
+            $updated_at = (new DateTime('now', new DateTimeZone('America/Winnipeg')))->format('Y-m-d H:i:s');
+            $query = "UPDATE games SET title = :title, description = :description, genre_id = :genre_id, category_id = :category_id, updated_at = :updated_at WHERE id = :id";
+            $statement = $db->prepare($query);
+            $statement->bindValue(':title', $title);
+            $statement->bindValue(':description', $description);
+            $statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+            $statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+            $statement->bindValue(':updated_at', $updated_at);
+            $statement->bindValue(':id', $id, PDO::PARAM_INT);
+
+            if ($statement->execute()) {
+                if (isset($medium_image_path)) {
+                    $query_image = "INSERT INTO images (image_path, game_id) VALUES (:image_path, :game_id) ON DUPLICATE KEY UPDATE image_path = :image_path";
+                    $statement_image = $db->prepare($query_image);
+                    $statement_image->bindValue(':image_path', $medium_image_path);
+                    $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+                    $statement_image->execute();
+                }
+
+                header("Location: index.php?id={$id}");
+                exit;
+            } else {
+                $error_message = "Database error: " . implode(", ", $statement->errorInfo());
+            }
         }
     }
 
-    if (empty($error_message)) {
-$query = "UPDATE games 
-          SET title = :title, description = :description, genre_id = :genre_id, category_id = :category_id, updated_at = :updated_at
-          WHERE id = :id";
+    if (isset($_POST['delete'])) {
+        $query_comments = "DELETE FROM comments WHERE game_id = :game_id";
+        $statement_comments = $db->prepare($query_comments);
+        $statement_comments->bindValue(':game_id', $id, PDO::PARAM_INT);
+        $statement_comments->execute();
 
-$statement = $db->prepare($query);
-$statement->bindValue(':title', $title);
-$statement->bindValue(':description', $description);  
-$statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
-$statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
-$statement->bindValue(':updated_at', $updated_at);
-$statement->bindValue(':id', $id, PDO::PARAM_INT);
+        if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
+            $query_image = "SELECT * FROM images WHERE game_id = :game_id LIMIT 1";
+            $statement_image = $db->prepare($query_image);
+            $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+            $statement_image->execute();
+            $image = $statement_image->fetch(PDO::FETCH_ASSOC);
 
+            if ($image && file_exists($image['image_path'])) {
+                unlink($image['image_path']);
+            }
 
-        if ($statement->execute()) {
-            header("Location: index.php?id={$id}");
-            exit;
-        } else {
-            $error_message = "Database error: " . implode(", ", $statement->errorInfo());
+            $query_delete_image = "DELETE FROM images WHERE game_id = :game_id";
+            $statement_delete_image = $db->prepare($query_delete_image);
+            $statement_delete_image->bindValue(':game_id', $id, PDO::PARAM_INT);
+            $statement_delete_image->execute();
         }
+
+        $query = "DELETE FROM games WHERE id = :id";
+        $statement = $db->prepare($query);
+        $statement->bindValue(':id', $id, PDO::PARAM_INT);
+        $statement->execute();
+
+        header("Location: index.php");
+        exit;
     }
 }
 
@@ -144,21 +145,9 @@ if (isset($_GET['id'])) {
     $statement_image->bindValue(':game_id', $id, PDO::PARAM_INT);
     $statement_image->execute();
     $image = $statement_image->fetch(PDO::FETCH_ASSOC);
-
-} elseif ($_POST && isset($_POST['delete'])) {
-    $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-
-    $query = "DELETE FROM games WHERE id = :id";
-    $statement = $db->prepare($query);
-    $statement->bindValue(':id', $id, PDO::PARAM_INT);
-    $statement->execute();
-
-    header("Location: index.php");
-    exit;
-} else {
-    $id = false;
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -171,59 +160,92 @@ if (isset($_GET['id'])) {
 </head>
 <body>
     <div id="wrapper">
-        <div id="menu">    
-            <h1><a href="index.php">Return Home</a></h1>
-        </div>
+<div id="menu">    
+    <h1><a href="index.php">Return Home</a></h1>
+</div>
 
-        <?php if (!empty($error_message)): ?>
-            <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
-        <?php endif; ?>
+<?php if (!empty($error_message)): ?>
+    <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
+<?php endif; ?>
 
-        <?php if ($id): ?>
-            <form action="edit.php" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="id" value="<?= $row['id'] ?>">
+<?php if ($id): ?>
+    <form action="edit.php" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="id" value="<?= $row['id'] ?>">
+    <input type="hidden" name="return_to" value="<?= htmlspecialchars($_SERVER['HTTP_REFERER'] ?? 'index.php') ?>">
+        <table>
+            <tr>
+                <td><label for="title">Title</label></td>
+                <td>
+                    <input id="title" name="title" type="text"
+                        value="<?= isset($title) ? htmlspecialchars($title) : htmlspecialchars($row['title']) ?>" />
+                </td>
+            </tr>
 
-                <label for="title">Title</label>
-                <input id="title" name="title" value="<?= isset($title) ? htmlspecialchars($title) : htmlspecialchars($row['title']) ?>" />
+            <tr>
+                <td><label for="description">Description</label></td>
+                <td>
+                    <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea>
+                </td>
+            </tr>
 
-                <label for="description">Description</label>
-                <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea> 
-
-<label for="genre">Genre</label>
-<select id="genre_id" name="genre_id">
-    <?php foreach ($genre as $genre_option): ?>
-
-        <option value="<?= $genre_option['id'] ?>" <?= (isset($genre_id) && $genre_id == $genre_option['id']) || (isset($row['genre_id']) && $row['genre_id'] == $genre_option['id']) ? 'selected' : '' ?>>
-            <?= htmlspecialchars($genre_option['name']) ?>
-        </option>
-    <?php endforeach; ?>
-</select>
-                <label for="category">Category</label>
-                <select id="category" name="category_id">
-                    <?php foreach ($categories as $category_option): ?>
-                        <option value="<?= $category_option['id'] ?>" <?= (isset($category_id) && $category_id == $category_option
-['id']) ? 'selected' : '' ?>> <?= htmlspecialchars($category_option['name']) ?> </option> <?php endforeach; ?> </select>
-            <label for="image">New Image (optional)</label>
-            <input type="file" id="image" name="image" accept="image/*" />
-
+            <tr>
+                <td><label for="genre">Genre</label></td>
+                <td>
+                    <select id="genre_id" name="genre_id">
+                        <?php foreach ($genre as $genre_option): ?>
+                            <option value="<?= $genre_option['id'] ?>" <?= 
+                                (isset($genre_id) && $genre_id == $genre_option['id']) || 
+                                (isset($row['genre_id']) && $row['genre_id'] == $genre_option['id']) ? 'selected' : '' 
+                            ?>>
+                                <?= htmlspecialchars($genre_option['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="category">Category</label></td>
+                <td>
+                    <select id="category" name="category_id">
+                        <?php foreach ($categories as $category_option): ?>
+                            <option value="<?= $category_option['id'] ?>" <?= 
+                                (isset($category_id) && $category_id == $category_option['id']) ? 'selected' : '' 
+                            ?>>
+                                <?= htmlspecialchars($category_option['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="image">New Image (optional)</label></td>
+                <td><input type="file" id="image" name="image" accept="image/*" /></td>
+            </tr>
             <?php if ($image): ?>
-                <div class="current-image">
-                    <p>Current Image:</p>
-                    <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image">
-                </div>
-
-                <label for="delete_image">Delete Image</label>
-                <input type="checkbox" id="delete_image" name="delete_image" value="1" />
+                <tr>
+                    <td>Current Image</td>
+                    <td>
+                        <img src="<?= $image['image_path'] ?>" alt="Current Image" class="medium-image" /><br>
+                        <label for="delete_image">Delete Image</label>
+                        <input type="checkbox" id="delete_image" name="delete_image" value="1" />
+                    </td>
+                </tr>
             <?php else: ?>
-                <p>No image available.</p>
+                <tr>
+                    <td colspan="2"><p>No image available.</p></td>
+                </tr>
             <?php endif; ?>
 
-            <input type="submit" name="update" value="Update" />
-            <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" />
-        </form>
-    <?php endif; ?>
-
+            <tr>
+                </table>
+                <td colspan="2" style="text-align: right;">
+                    <input type="submit" name="update" value="Update" />
+                    <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" /></td>
+</form>
+<?php endif; ?>
     <?php
         $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
     <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
 </div>
+</body>
+</html>

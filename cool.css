@@ -26,11 +26,17 @@ body {
 #wrapper {
     width: 85%;
     margin: auto;
+    min-height: 100%;
 }
 
 #menu {
     background-color: #f1f1f1; 
     padding: 20px;
+}
+
+#result a{
+    color: yellow;
+    font-size: 1.5em;
 }
 
 h2 {
