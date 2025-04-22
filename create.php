@@ -1,7 +1,6 @@
 <?php
 require('connect.php');
 require('authenticate.php');
-include('navbar.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
@@ -25,16 +24,19 @@ $statement_category = $db->prepare($query_category);
 $statement_category->execute();
 $categories = $statement_category->fetchAll(PDO::FETCH_ASSOC);
 
+// validation of creating posts
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT); // genre_id, not genre
     $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
+    $category_id = $category_id !== false ? $category_id : null; 
     $release_date = filter_input(INPUT_POST, 'release_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-
+// validation continued
     if (empty($title) || empty($description) || empty($genre_id) || empty($release_date)) {
         $error_message = 'All fields are required.';
     } else {
+// file validation for adding images
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
             $image_filename = $_FILES['image']['name'];
             $temporary_image_path = $_FILES['image']['tmp_name'];
@@ -59,7 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $statement->bindValue(':title', $title);
             $statement->bindValue(':description', $description);
             $statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+            if ($category_id) {
             $statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+            } else {
+            $statement->bindValue(':category_id', null, PDO::PARAM_NULL);
+            } 
             $statement->bindValue(':release_date', $release_date);
             $statement->bindValue(':created_at', $created_at);
             $statement->bindValue(':updated_at', $updated_at);
@@ -108,51 +114,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Add A Game</title>
 </head>
 <body>
-    <div id="wrapper">
-        <div id="menu">    
-            <h1><a href="index.php">Return Home</a></h1>
-        </div>
-
-        <?php if (!empty($error_message)): ?>
-            <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
-        <?php endif; ?>
-
-        <form method="post" action="create.php" enctype="multipart/form-data">
-            <label for="title">Title</label>
-            <input id="title" name="title" type="text" required />
-
-            <label for="description">Description</label>
-            <textarea id="description" name="description" required></textarea>
-
-            <label for="genre_id">Genre</label>
-            <select id="genre_id" name="genre_id">
-                <?php foreach ($genre as $genre_option): ?>
-                    <option value="<?= $genre_option['id'] ?>" <?= (isset($genre_id) && $genre_id == $genre_option['id']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($genre_option['name']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-
-            <label for="category_id">Category</label>
-            <select id="category_id" name="category_id">
-                <?php foreach ($categories as $category_option): ?>
-                    <option value="<?= $category_option['id'] ?>" <?= (isset($category_id) && $category_id == $category_option['id']) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($category_option['name']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-
-            <label for="release_date">Release Date</label>
-            <input type="date" name="release_date" required />
-
-            <label for="image">Image (optional)</label>
-            <input type="file" id="image" name="image" accept="image/*" />
-
-            <input type="submit" value="Submit">
-        </form>
-        <?php
-            $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
-        <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
+    <?php include('navbar.php'); ?>
+<div id="wrapper">
+    <div id="menu">    
+        <h1><a href="index.php">Return Home</a></h1>
     </div>
+
+    <?php if (!empty($error_message)): ?>
+        <p style="color: red;"><?= htmlspecialchars($error_message) ?></p>
+    <?php endif; ?>
+
+    <form method="post" action="create.php" enctype="multipart/form-data">
+        <table>
+            <tr>
+                <td><label for="title">Title</label></td>
+                <td><input id="title" name="title" type="text" required></td>
+            </tr>
+
+            <tr>
+                <td><label for="description">Description</label></td>
+                <td><textarea id="description" name="description" required></textarea></td>
+            </tr>
+
+            <tr>
+                <td><label for="genre_id">Genre</label></td>
+                <td>
+                    <select id="genre_id" name="genre_id">
+                        <?php foreach ($genre as $genre_option): ?>
+                            <option value="<?= $genre_option['id'] ?>" <?= (isset($genre_id) && $genre_id == $genre_option['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($genre_option['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td><label for="category_id">Category</label></td>
+                <td>
+<select id="category_id" name="category_id">
+    <option value="">Select Category (Optional)</option>
+    <?php foreach ($categories as $category_option): ?>
+        <option value="<?= $category_option['id'] ?>" <?= (isset($category_id) && $category_id == $category_option['id']) ? 'selected' : '' ?>>
+            <?= htmlspecialchars($category_option['name']) ?>
+        </option>
+    <?php endforeach; ?>
+</select>
+                </td>
+            </tr>
+
+            <tr>
+                <td><label for="release_date">Release Date</label></td>
+                <td><input type="date" id="release_date" name="release_date" required></td>
+            </tr>
+
+            <tr>
+                <td><label for="image">Image (optional)</label></td>
+                <td><input type="file" id="image" name="image" accept="image/*"></td>
+            </tr>
+            </table>
+            <input type="submit" value="Submit">
+    </form>
+    <?php
+        $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';
+    ?>
+    <button class="back-btn" onclick="window.location.href='<?= $previousPage; ?>'">Go Back</button>
+</div>
 </body>
 </html>

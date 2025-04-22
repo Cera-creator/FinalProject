@@ -1,7 +1,6 @@
 <?php
 session_start();
 require('connect.php');
-include('navbar.php');
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Register</title>
 </head>
 <body>
+    <?php include('navbar.php'); ?>
 <div id="login">
 <h2>Register</h2>
 <?php if ($errors): ?>
@@ -69,5 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <p>Already have an account? <a href="login.php">Log in</a></p>
 </div>
+    <footer>
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </body>
 </html>

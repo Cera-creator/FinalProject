@@ -1,7 +1,6 @@
 <?php
 require('authadmin.php');
 require('connect.php');
-include('navbar.php');
 
 $id = $_GET['id'];
 
@@ -30,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -39,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Edit User</title>
 </head>
 <body>
+    <?php include('navbar.php'); ?>
+    <div id="wrapper">
 <h2>Edit User</h2>
 <form method="post">
     Email: <input type="email" name="email" value="<?= htmlspecialchars($user['email']) ?>" required><br>
@@ -50,5 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </select><br>
     <button type="submit">Update User</button>
 </form>
+</div>
 </body>
 </html>

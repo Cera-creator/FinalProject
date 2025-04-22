@@ -38,7 +38,7 @@ if (!$game) {
     exit;
 }
 
-$user_id = $_SESSION['user_id'] ?? null;
+$user_id = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
 
 try {
     $stmt = $db->prepare("INSERT INTO comments (game_id, user_id, name, content, rating) VALUES (?, ?, ?, ?, ?)");

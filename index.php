@@ -1,7 +1,6 @@
 <?php
 session_start();
 require('connect.php');
-include('navbar.php');
 
 $orderBy = 'id DESC'; 
 
@@ -56,6 +55,7 @@ $statement->execute();
     <title>Top Games</title>
 </head>
 <body>
+    <?php include('navbar.php'); ?>
     <div id="wrapper">
         <div id="header">
             <h1>
@@ -76,12 +76,19 @@ $statement->execute();
             <?php endif; ?>
         </ul>
 
-        <p>Welcome to a list of my top rated games!</p>
+        <p>Welcome to my content site! Here you can find all types of games that I play, or plan on playing. </p>
+        <p>If you want to stay involved, feel free to register an account and unlock the ability to comment on my games. Let me know how you feel! </p>
     </div>
 
     <div id="didYouKnow" class="did-you-know-box">
     </div>
 
     <script src="script.js"></script>
+    <footer>
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </body>
 </html>

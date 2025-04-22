@@ -1,7 +1,6 @@
 <?php
 session_start();
 require('connect.php'); 
-include('navbar.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $email = trim($_POST['email'] ?? '');
@@ -41,9 +40,9 @@ if ($user && password_verify($password, $user['password'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="cool.css">
     <title>Login</title>
-
 </head>
 <body>
+<?php include('navbar.php'); ?>
 <div id='login'>
 <h2>Login</h2>
 <?php if (!empty($error)): ?>
@@ -58,5 +57,11 @@ if ($user && password_verify($password, $user['password'])) {
 
 <p>Don't have an account? <a href="register.php">Register here</a></p> 
 </div>
+    <footer>
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </body>
 </html>

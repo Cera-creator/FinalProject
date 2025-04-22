@@ -1,7 +1,6 @@
 <?php
 session_start();
 require('connect.php');
-include('navbar.php');
 
 $orderBy = 'id DESC'; 
 
@@ -52,6 +51,7 @@ if ($categoryFilter) {
 }
 
 $statement->execute();
+
 ?>
 
 <!DOCTYPE html>
@@ -64,6 +64,7 @@ $statement->execute();
     <title>Top Games</title>
 </head>
 <body>
+    <?php include('navbar.php'); ?>
     <script>
         // this is being added to avoid refreshing screen flash on dark mode
   (function() {
@@ -117,20 +118,20 @@ $statement->execute();
                         <p><strong>Release Date: </strong><?= htmlspecialchars($row['release_date']) ?></p>
                     </li>
                 <?php endwhile; ?>
+            </ul>
                 <?php
                     $previousPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'default-page.php';?>
                 <button class="back-btn" onclick="window.location.href='<?php echo $previousPage; ?>'">Go Back</button>
-            </ul>
         </div>
     </div>
     <div id="didYouKnow" class="did-you-know-box">
     </div>
     <script src="script.js"></script>
-</body>
-<footer style="padding: 10px; margin-top: 20px;">
+    <footer>
     <p>Check out more: 
         <a href="https://yourlink1.com">Link 1</a> |
         <a href="https://yourlink2.com">Link 2</a>
     </p>
 </footer>
+</body>
 </html>

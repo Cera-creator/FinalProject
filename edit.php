@@ -1,7 +1,6 @@
 <?php
 require('connect.php');
 require('authenticate.php');
-include('navbar.php');
 require __DIR__ . '/php-image-resize-master/lib/ImageResize.php';
 require __DIR__ . '/php-image-resize-master/lib/ImageResizeException.php';
 
@@ -27,24 +26,22 @@ $categories = $statement_categories->fetchAll(PDO::FETCH_ASSOC);
 
 if ($_POST) {
     $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
-    
+// validation of editing post
     if (isset($_POST['update'])) {
         $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $genre_id = filter_input(INPUT_POST, 'genre_id', FILTER_SANITIZE_NUMBER_INT);
         $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
-
+        $category_id = $category_id !== false ? $category_id : null;
+// validation continued
         $error_message = '';
         if (empty($title) || empty($description)) {
             $error_message = 'Title and description are required.';
         }
-        if (empty($category_id)) {
-            $error_message = 'Please select a category.';
-        }
         if (empty($genre_id)) {
             $error_message = 'Please select a valid genre.';
         }
-
+// image validation
         if ($_FILES['image']['error'] === 0) {
             $image_filename = $_FILES['image']['name'];
             $temporary_image_path = $_FILES['image']['tmp_name'];
@@ -77,7 +74,11 @@ if ($_POST) {
             $statement->bindValue(':title', $title);
             $statement->bindValue(':description', $description);
             $statement->bindValue(':genre_id', $genre_id, PDO::PARAM_INT);
+            if ($category_id) {
             $statement->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+            } else {
+            $statement->bindValue(':category_id', null, PDO::PARAM_NULL);
+            }
             $statement->bindValue(':updated_at', $updated_at);
             $statement->bindValue(':id', $id, PDO::PARAM_INT);
 
@@ -159,6 +160,7 @@ if (isset($_GET['id'])) {
     <title>Edit Game</title>
 </head>
 <body>
+    <?php include('navbar.php'); ?>
     <div id="wrapper">
 <div id="menu">    
     <h1><a href="index.php">Return Home</a></h1>
@@ -177,19 +179,19 @@ if (isset($_GET['id'])) {
                 <td><label for="title">Title</label></td>
                 <td>
                     <input id="title" name="title" type="text"
-                        value="<?= isset($title) ? htmlspecialchars($title) : htmlspecialchars($row['title']) ?>" />
+                        value="<?= isset($title) ? htmlspecialchars($title) : htmlspecialchars($row['title']) ?>" >
                 </td>
             </tr>
 
             <tr>
                 <td><label for="description">Description</label></td>
                 <td>
-                    <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea>
+                <textarea id="description" name="description"><?= isset($description) ? htmlspecialchars($description) : htmlspecialchars($row['description']) ?></textarea>
                 </td>
             </tr>
 
             <tr>
-                <td><label for="genre">Genre</label></td>
+                <td><label for="genre_id">Genre</label></td>
                 <td>
                     <select id="genre_id" name="genre_id">
                         <?php foreach ($genre as $genre_option): ?>
@@ -204,12 +206,16 @@ if (isset($_GET['id'])) {
                 </td>
             </tr>
             <tr>
-                <td><label for="category">Category</label></td>
+                <td><label for="category_id">Category</label></td>
                 <td>
-                    <select id="category" name="category_id">
+                    <select id="category_id" name="category_id">
+                        <option value="">Select Category (Optional)</option>
                         <?php foreach ($categories as $category_option): ?>
                             <option value="<?= $category_option['id'] ?>" <?= 
-                                (isset($category_id) && $category_id == $category_option['id']) ? 'selected' : '' 
+                                (isset($category_id) && $category_id == $category_option['id']) ||
+                                (!isset($category_id) && isset($row['category_id']) && $row['category_id'] == $category_option['id']) 
+                                    ? 'selected' 
+                                    : '' 
                             ?>>
                                 <?= htmlspecialchars($category_option['name']) ?>
                             </option>
@@ -219,7 +225,7 @@ if (isset($_GET['id'])) {
             </tr>
             <tr>
                 <td><label for="image">New Image (optional)</label></td>
-                <td><input type="file" id="image" name="image" accept="image/*" /></td>
+                <td><input type="file" id="image" name="image" accept="image/*"></td>
             </tr>
             <?php if ($image): ?>
                 <tr>
@@ -237,10 +243,11 @@ if (isset($_GET['id'])) {
             <?php endif; ?>
 
             <tr>
-                </table>
                 <td colspan="2" style="text-align: right;">
-                    <input type="submit" name="update" value="Update" />
-                    <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" /></td>
+                    <input type="submit" name="update" value="Update" >
+                    <input type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure you wish to delete this post?')" ></td>
+                </tr>
+                    </table>
 </form>
 <?php endif; ?>
     <?php

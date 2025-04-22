@@ -18,7 +18,7 @@ $role = $_SESSION['role'] ?? null;
             <div class="dropdown">
                 <button class="dropbtn">Admin Tools ▾</button>
                 <div class="dropdown-content">
-                    <a href="modcomments.php">Moderate Comments</a>
+                    <a href="modcomments.php">Manage Comments</a>
                     <a href="manageusers.php">Manage Users</a>
                     <a href="categories.php">Manage Categories</a>
                 </div>

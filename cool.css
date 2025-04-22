@@ -4,6 +4,9 @@ body {
     color: #333333; 
     margin: 0;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 #header {
@@ -26,7 +29,7 @@ body {
 #wrapper {
     width: 85%;
     margin: auto;
-    min-height: 100%;
+    flex: 1;
 }
 
 #menu {
@@ -449,3 +452,4 @@ body.dark-mode footer a {
     padding: 0 2px;
     border-radius: 3px;
 }
+

@@ -1,7 +1,6 @@
 <?php
 session_start();
 require('connect.php');
-include('navbar.php');
 
 $game_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $game = null;
@@ -69,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="cool.css">
 </head>
 <body>
+    <?php include('navbar.php'); ?>
         <script>
         // this is being added to avoid refreshing screen flash on dark mode
   (function() {
@@ -187,5 +187,11 @@ function refreshCaptcha() {
     document.getElementById('captcha-img').src = 'captcha.php?rand=' + Math.random();
 }
 </script>
+    <footer>
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </body>
 </html>

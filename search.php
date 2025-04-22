@@ -1,6 +1,5 @@
 <?php
 require ('connect.php');
-include('navbar.php');
 
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 
@@ -32,10 +31,12 @@ $results = $stmt->fetchAll();
     <link rel="stylesheet" href="cool.css">
 </head>
 <body>
+    <?php include('navbar.php'); ?>
 <div id="wrapper">
     <div id="header">
         <h1><a href="index.php">SuperCoolTwitchName's Top Games</a></h1>
     </div>
+    <div id="result">
 <h2>Search Results for "<?php echo htmlspecialchars($search); ?>"</h2>
 <?php if (count($results) === 0): ?>
     <p>No matching games found.</p>
@@ -72,5 +73,12 @@ $results = $stmt->fetchAll();
     </ul>
 <?php endif; ?>
 </div>
+</div>
+    <footer>
+    <p>Check out more: 
+        <a href="https://yourlink1.com">Link 1</a> |
+        <a href="https://yourlink2.com">Link 2</a>
+    </p>
+</footer>
 </body>
 </html>
