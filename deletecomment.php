@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'user
 
 $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
-$comment_id = (int) ($_GET['id'] ?? 0);
+$comment_id = (int) ($_POST['id'] ?? 0);
 
 $stmt = $db->prepare("SELECT * FROM comments WHERE id = ?");
 $stmt->execute([$comment_id]);
